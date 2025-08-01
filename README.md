@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PodPicker - AI-Powered Podcast Curator
 
-## Getting Started
+Extract the gold from your favorite podcasts with AI-powered segmentation and curation.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Real YouTube Transcript Extraction**: Uses the `youtube-transcript` package to extract real transcripts from YouTube videos
+- **YouTube Data API Integration**: Fetches real video metadata including title, description, duration, and thumbnails
+- **OpenAI-Powered Topic Analysis**: Uses GPT-4 to analyze transcripts and identify key topics with timestamps
+- **Smart Segmentation**: AI breaks down long podcasts into digestible topics with precise timestamps
+- **Personal Curation**: Save only the segments that interest you most
+- **Easy Playback**: Jump directly to your saved moments across all podcasts
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Install Dependencies**
+   ```bash
+   npm install
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Configure API Keys**
+   - Get your OpenAI API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+   - Get your YouTube Data API key from [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+   - Create a `.env.local` file with your API keys:
+     ```
+     OPENAI_API_KEY=your_actual_openai_api_key_here
+     YOUTUBE_API_KEY=your_actual_youtube_api_key_here
+     ```
 
-## Learn More
+3. **Run the Development Server**
+   ```bash
+   npm run dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. **Open the Application**
+   - Navigate to [http://localhost:3000](http://localhost:3000)
+   - Go to the Dashboard to start analyzing podcasts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How to Use
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Paste a YouTube URL**: Enter any YouTube podcast URL in the dashboard
+2. **Extract Transcript**: The app will automatically extract the transcript from the video
+3. **AI Analysis**: OpenAI will analyze the transcript and identify key topics
+4. **Select Topics**: Choose which topics you want to save to your collection
+5. **Save to Collection**: Build your personalized library of podcast segments
 
-## Deploy on Vercel
+## Technical Details
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### API Routes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `/api/transcript` - Extracts real transcripts from YouTube videos and fetches video metadata
+- `/api/youtube-data` - Fetches detailed video information from YouTube Data API
+- `/api/analyze-transcript` - Uses OpenAI to analyze transcripts and identify topics
+- `/api/ai-analysis` - Additional AI analysis features
+
+### Dependencies
+
+- **Next.js 15** - React framework
+- **OpenAI SDK** - For AI-powered transcript analysis
+- **youtube-transcript** - For extracting YouTube transcripts
+- **googleapis** - For YouTube Data API integration
+- **Tailwind CSS** - For styling
+- **Lucide React** - For icons
+
+### Environment Variables
+
+- `OPENAI_API_KEY` - Your OpenAI API key (required for AI analysis)
+- `YOUTUBE_API_KEY` - Your YouTube Data API key (required for video metadata)
+
+## Architecture
+
+The application follows a modern Next.js architecture:
+
+- **Frontend**: React components with TypeScript
+- **Backend**: Next.js API routes
+- **AI Integration**: OpenAI GPT-4 for transcript analysis
+- **Data Storage**: Local storage for saved topics
+
+## Troubleshooting
+
+- **Transcript Extraction Fails**: Ensure the YouTube video has captions/transcripts available
+- **Video Metadata Fails**: Check that your YouTube Data API key is correctly set in `.env.local`
+- **AI Analysis Fails**: Check that your OpenAI API key is correctly set in `.env.local`
+- **Build Errors**: Run `npm run build` to check for TypeScript errors
+
+## Development
+
+- **TypeScript**: All code is written in TypeScript for better type safety
+- **ESLint**: Code linting is configured for consistency
+- **Hot Reload**: Development server supports hot reloading
+
+## License
+
+This project is open source and available under the MIT License.

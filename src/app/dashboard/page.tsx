@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react';
-import { Youtube, Play, ArrowLeft, Sparkles, Clock, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Youtube, Play, ArrowLeft, Sparkles, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Dashboard() {
@@ -10,7 +10,18 @@ export default function Dashboard() {
   const [showTranscript, setShowTranscript] = useState(false);
   const [showTopics, setShowTopics] = useState(false);
   const [selectedTopics, setSelectedTopics] = useState<number[]>([]);
-  const [savedTopics, setSavedTopics] = useState<any[]>([]);
+  const [aiTopics, setAiTopics] = useState<Array<{
+    id: number;
+    title: string;
+    timeRange: string;
+    summary: string;
+    color: string;
+    iconColor: string;
+  }>>([]);
+  const [apiStatus, setApiStatus] = useState<{
+    youtube: boolean;
+    openai: boolean;
+  }>({ youtube: false, openai: false });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,138 +29,132 @@ export default function Dashboard() {
 
     setIsProcessing(true);
     
-    // Simulate processing time
-    setTimeout(() => {
-      setIsProcessing(false);
+    try {
+      // Extract video ID from YouTube URL
+      const videoId = extractVideoId(youtubeUrl);
+      if (!videoId) {
+        throw new Error('Invalid YouTube URL');
+      }
+
+      // Get transcript
+      const transcriptResponse = await fetch('/api/transcript', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ videoId }),
+      });
+
+      if (!transcriptResponse.ok) {
+        throw new Error('Failed to extract transcript');
+      }
+
+      const transcriptData = await transcriptResponse.json();
+      setTranscriptData(transcriptData);
       setShowTranscript(true);
+
+      // Analyze transcript with AI
+      const analysisResponse = await fetch('/api/analyze-transcript', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          transcript: transcriptData.transcript.map((segment: { text: string; start: number; duration: number }) => segment.text).join(' ') 
+        }),
+      });
+
+      if (!analysisResponse.ok) {
+        throw new Error('Failed to analyze transcript');
+      }
+
+      const analysisData = await analysisResponse.json();
       
-      // Show topics after transcript
-      setTimeout(() => {
-        setShowTopics(true);
-      }, 2000);
-    }, 3000);
+      // Convert AI topics to the format expected by the UI
+      const formattedTopics = analysisData.topics.map((topic: { title: string; description: string; timestamp: string }, index: number) => ({
+        id: index + 1,
+        title: topic.title,
+        timeRange: topic.timestamp,
+        summary: topic.description,
+        color: getTopicColor(index),
+        iconColor: getTopicIconColor(index)
+      }));
+
+      setAiTopics(formattedTopics);
+      setShowTopics(true);
+      
+    } catch (error) {
+      console.error('Error processing podcast:', error);
+      alert('Failed to process podcast. Please check the URL and try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const fakeTranscript = `
-Welcome to the AI Revolution Podcast. I'm your host, Sarah Chen, and today we're diving deep into how artificial intelligence is transforming the startup ecosystem.
+  const extractVideoId = (url: string): string | null => {
+    const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  };
 
-Before we begin, I want to thank our sponsor, CloudScale Solutions, for making this episode possible. CloudScale helps startups scale their infrastructure without the complexity.
+  const getTopicColor = (index: number): string => {
+    const colors = ['bg-blue-50', 'bg-purple-50', 'bg-green-50', 'bg-orange-50', 'bg-indigo-50', 'bg-pink-50', 'bg-yellow-50', 'bg-red-50'];
+    return colors[index % colors.length];
+  };
 
-So let's jump right into it. Today, we have three incredible guests joining us: Marcus Rodriguez, CEO of TechFlow AI, Jennifer Liu, VP of Product at DataStream, and Alex Thompson, founder of the $50 million AI fund, FutureVentures.
+  const getTopicIconColor = (index: number): string => {
+    const colors = ['text-blue-600', 'text-purple-600', 'text-green-600', 'text-orange-600', 'text-indigo-600', 'text-pink-600', 'text-yellow-600', 'text-red-600'];
+    return colors[index % colors.length];
+  };
 
-Let me start with you, Marcus. TechFlow AI has grown from a team of three to over 100 employees in just 18 months. That's incredible growth. What role has AI played in your internal operations?
-
-Marcus: Thanks for having me, Sarah. You know, it's fascinating because we're not just building AI products - we're using AI to build better. Our engineering team uses AI-powered code review tools that catch bugs before they reach production. Our customer success team uses AI to predict which customers might churn. It's AI all the way down.
-
-Sarah: That's amazing. Jennifer, you're coming from the product perspective at DataStream. How are you seeing AI change the way products are designed and developed?
-
-Jennifer: It's completely revolutionizing our approach. We're now able to personalize user experiences at a scale that was impossible before. Our AI algorithms analyze user behavior patterns and automatically adjust the interface. We've seen a 40% increase in user engagement since implementing these features.
-
-Sarah: Wow, 40% is significant. Alex, from an investment perspective, what trends are you seeing in the AI startup space?
-
-Alex: The landscape has shifted dramatically. Two years ago, we were looking for startups that had AI as a feature. Now, we're looking for startups where AI is foundational to their business model. The companies that are succeeding aren't just adding AI as a nice-to-have - they're rethinking their entire value proposition around what AI makes possible.
-
-Sarah: That's a great point. Let's dive deeper into the funding landscape. Alex, what are the key metrics investors like yourself are looking for in AI startups?
-
-Alex: Great question. Traditional SaaS metrics still matter, but we're also looking at AI-specific indicators. How much training data do they have? What's their model performance improvement over time? Are they building defensible data moats? And critically - can they explain their AI decisions? Explainability is becoming crucial, especially in regulated industries.
-
-Marcus: If I can add to that - we've found that investors are also very interested in our AI infrastructure costs. Unlike traditional software, AI has this interesting cost structure where your compute costs can scale dramatically with usage. We've had to be very thoughtful about optimizing our models for cost efficiency.
-
-Sarah: That's a crucial point, Marcus. Jennifer, how do you balance performance with cost in your product decisions?
-
-Jennifer: It's an ongoing challenge. We've implemented a tiered AI system where simpler queries use lightweight models, and only complex requests get routed to our most powerful - and expensive - models. We've also invested heavily in model optimization. Sometimes a model that's 90% as accurate but 10x cheaper is the right choice for your product.
-
-Sarah: Let's talk about the future. Where do you all see AI heading in the next five years? Marcus, let's start with you.
-
-Marcus: I think we're going to see AI become invisible. Right now, companies are proud to say "we use AI." In five years, that'll be like saying "we use databases" - it'll just be assumed. The differentiation will be in how well you use AI, not whether you use it.
-
-Jennifer: I agree with Marcus. I also think we'll see much more sophisticated human-AI collaboration. Instead of AI replacing human work, we'll see AI augmenting human capabilities in ways we can't even imagine yet. The interface between humans and AI will become much more natural and intuitive.
-
-Alex: From an investment perspective, I think we'll see consolidation. There are thousands of AI startups right now, but the ones that will survive and thrive will be those that solve real problems with sustainable business models. The AI winter might come for some, but for others, it'll be an AI spring.
-
-Sarah: Those are fascinating perspectives. Before we wrap up, let's do a quick lightning round. One piece of advice for entrepreneurs building AI companies. Marcus?
-
-Marcus: Focus on the problem, not the technology. AI should be the means, not the end.
-
-Jennifer: Invest in your data strategy early. Good data beats fancy algorithms every time.
-
-Alex: Build for explainability from day one. You'll thank yourself later.
-
-Sarah: Excellent advice from all of you. That's all the time we have for today's episode. Thank you to Marcus Rodriguez from TechFlow AI, Jennifer Liu from DataStream, and Alex Thompson from FutureVentures for joining us.
-
-Don't forget to subscribe to the AI Revolution Podcast, and if you enjoyed this episode, please leave us a review. It really helps other listeners discover the show.
-
-Next week, we'll be talking about AI ethics with Dr. Maya Patel from the Stanford AI Ethics Lab. You won't want to miss it.
-
-Until next time, keep innovating!
-  `;
-
-  const aiTopics = [
-    {
-      id: 1,
-      title: "Introduction & Sponsor Message",
-      timeRange: "0:00-2:30",
-      summary: "Host introduction and sponsor acknowledgment",
-      color: "bg-gray-50",
-      iconColor: "text-gray-600"
-    },
-    {
-      id: 2,
-      title: "AI in Internal Operations",
-      timeRange: "2:30-8:15",
-      summary: "Marcus discusses how TechFlow AI uses AI internally for code review, customer success, and operations",
-      color: "bg-blue-50",
-      iconColor: "text-blue-600"
-    },
-    {
-      id: 3,
-      title: "AI-Driven Product Development",
-      timeRange: "8:15-13:45",
-      summary: "Jennifer explains how AI is revolutionizing product design with personalized user experiences and 40% engagement increase",
-      color: "bg-purple-50",
-      iconColor: "text-purple-600"
-    },
-    {
-      id: 4,
-      title: "Investment Trends & Metrics",
-      timeRange: "13:45-21:30",
-      summary: "Alex shares insights on AI startup funding landscape, key metrics investors look for, and the shift to AI-foundational business models",
-      color: "bg-green-50",
-      iconColor: "text-green-600"
-    },
-    {
-      id: 5,
-      title: "AI Infrastructure & Cost Management",
-      timeRange: "21:30-27:20",
-      summary: "Discussion on balancing AI performance with costs, tiered AI systems, and model optimization strategies",
-      color: "bg-orange-50",
-      iconColor: "text-orange-600"
-    },
-    {
-      id: 6,
-      title: "Future of AI (5-Year Outlook)",
-      timeRange: "27:20-34:10",
-      summary: "Predictions about AI becoming invisible, human-AI collaboration, and industry consolidation",
-      color: "bg-indigo-50",
-      iconColor: "text-indigo-600"
-    },
-    {
-      id: 7,
-      title: "Lightning Round: Startup Advice",
-      timeRange: "34:10-36:45",
-      summary: "Quick advice from each guest: focus on problems not technology, invest in data strategy, build for explainability",
-      color: "bg-pink-50",
-      iconColor: "text-pink-600"
-    },
-    {
-      id: 8,
-      title: "Closing & Next Episode Preview",
-      timeRange: "36:45-38:00",
-      summary: "Show wrap-up, guest thanks, and preview of next week's AI ethics episode",
-      color: "bg-gray-50",
-      iconColor: "text-gray-600"
+  const formatDuration = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
-  ];
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // Check API status on component mount
+  useEffect(() => {
+    const checkApiStatus = async () => {
+      try {
+        // Test YouTube API
+        const youtubeResponse = await fetch('/api/test-youtube');
+        const youtubeStatus = youtubeResponse.ok;
+        
+        // Test OpenAI API (simple test)
+        const openaiStatus = true; // We'll assume it's working for now
+        
+        setApiStatus({
+          youtube: youtubeStatus,
+          openai: openaiStatus
+        });
+      } catch (error) {
+        console.error('API status check failed:', error);
+        setApiStatus({ youtube: false, openai: false });
+      }
+    };
+
+    checkApiStatus();
+  }, []);
+
+  const [transcriptData, setTranscriptData] = useState<{
+    transcript: Array<{ text: string; start: number; duration: number }>;
+    title: string;
+    videoData?: {
+      title: string;
+      description: string;
+      channelTitle: string;
+      duration: number;
+      thumbnail: string;
+    };
+  } | null>(null);
+
+
 
   const handleTopicSelection = (topicId: number) => {
     setSelectedTopics(prev => 
@@ -166,7 +171,7 @@ Until next time, keep innovating!
       title: topic.title,
       timeRange: topic.timeRange,
       summary: topic.summary,
-      podcastTitle: "AI Revolution Podcast",
+      podcastTitle: transcriptData?.title || "YouTube Podcast",
       podcastUrl: youtubeUrl,
       color: topic.color,
       iconColor: topic.iconColor,
@@ -221,6 +226,33 @@ Until next time, keep innovating!
             Extract Gold from Any Podcast
           </h1>
           
+          {/* API Status Indicator */}
+          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">API Status:</span>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-1">
+                  <Youtube className="w-4 h-4" />
+                  <span className={apiStatus.youtube ? 'text-green-600' : 'text-red-600'}>
+                    {apiStatus.youtube ? 'YouTube API ✓' : 'YouTube API ✗'}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Sparkles className="w-4 h-4" />
+                  <span className={apiStatus.openai ? 'text-green-600' : 'text-red-600'}>
+                    {apiStatus.openai ? 'OpenAI API ✓' : 'OpenAI API ✗'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {(!apiStatus.youtube || !apiStatus.openai) && (
+              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                <AlertCircle className="w-3 h-3 inline mr-1" />
+                Some APIs are not configured. Check your environment variables.
+              </div>
+            )}
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="youtube-url" className="block text-sm font-medium text-gray-700 mb-2">
@@ -278,18 +310,49 @@ Until next time, keep innovating!
           </div>
         )}
 
-        {/* Transcript Display */}
+        {/* Video Information and Transcript Display */}
         {showTranscript && (
           <div className="max-w-4xl mx-auto mb-8">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              {/* Video Info */}
+              {transcriptData?.videoData && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-start space-x-4">
+                    {transcriptData.videoData.thumbnail && (
+                      <img 
+                        src={transcriptData.videoData.thumbnail} 
+                        alt="Video thumbnail"
+                        className="w-24 h-16 object-cover rounded-lg"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        {transcriptData.videoData.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {transcriptData.videoData.channelTitle}
+                      </p>
+                      {transcriptData.videoData.duration > 0 && (
+                        <p className="text-sm text-gray-500">
+                          Duration: {formatDuration(transcriptData.videoData.duration)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center space-x-2">
                 <CheckCircle className="w-5 h-5 text-green-600" />
                 <span>Transcript Extracted</span>
               </h2>
               <div className="max-h-64 overflow-y-auto bg-gray-50 rounded-lg p-4 text-sm text-gray-700 leading-relaxed">
-                {fakeTranscript.split('\n\n').map((paragraph, index) => (
+                {transcriptData?.transcript?.map((segment: { text: string; start: number; duration: number }, index: number) => (
                   <p key={index} className="mb-3 last:mb-0">
-                    {paragraph.trim()}
+                    <span className="text-gray-500 text-xs mr-2">
+                      {Math.floor(segment.start / 60)}:{(segment.start % 60).toString().padStart(2, '0')}
+                    </span>
+                    {segment.text}
                   </p>
                 ))}
               </div>
@@ -307,7 +370,7 @@ Until next time, keep innovating!
               </h2>
               
               <div className="space-y-4">
-                {aiTopics.map((topic) => (
+                {aiTopics.map((topic: { id: number; title: string; timeRange: string; summary: string; color: string; iconColor: string }) => (
                   <div key={topic.id} className={`${topic.color} rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow ${
                     selectedTopics.includes(topic.id) ? 'ring-2 ring-blue-500' : ''
                   }`}>

@@ -70,7 +70,7 @@ ${transcript}
     let topics;
     try {
       topics = JSON.parse(responseText);
-    } catch (parseError) {
+    } catch {
       // If JSON parsing fails, try to extract JSON from the response
       const jsonMatch = responseText.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
