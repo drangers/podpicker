@@ -20,6 +20,7 @@ export default function Home() {
             <nav className="hidden md:flex items-center space-x-8">
               <a href="#" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">Home</a>
               <Link href="/collection" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">My Collection</Link>
+              <Link href="/test-external-transcript" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">Test Transcript API</Link>
               <a href="#features" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">Features</a>
               <a href="#pricing" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">Pricing</a>
             </nav>
