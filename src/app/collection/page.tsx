@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react';
 import { Play, ArrowLeft, Heart, Clock, Trash2, ExternalLink, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import AuthNav from '@/components/auth/AuthNav'
+import { getUser, onAuthStateChange } from '@/lib/auth'
+import type { User } from '@supabase/supabase-js'
 
 interface SavedTopic {
   id: string;
@@ -17,9 +21,39 @@ interface SavedTopic {
 }
 
 export default function Collection() {
+  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [savedTopics, setSavedTopics] = useState<SavedTopic[]>([]);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check authentication
+    const checkAuth = async () => {
+      const currentUser = await getUser()
+      setUser(currentUser)
+      setIsLoading(false)
+      
+      // Redirect to home if not authenticated
+      if (!currentUser) {
+        router.push('/')
+        return
+      }
+    }
+
+    checkAuth()
+
+    // Listen for auth changes
+    const { data: { subscription } } = onAuthStateChange((user) => {
+      setUser(user)
+      if (!user) {
+        router.push('/')
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [router])
 
   // Load saved topics from localStorage on component mount
   useEffect(() => {
@@ -98,6 +132,23 @@ export default function Collection() {
     }
   };
 
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Redirect if not authenticated
+  if (!user) {
+    return null // Will redirect via useEffect
+  }
+
   const handleSelectTopic = (topicId: string) => {
     setSelectedTopics(prev => 
       prev.includes(topicId) 
@@ -125,11 +176,14 @@ export default function Collection() {
               <span className="text-gray-600 hover:text-gray-900">Back to Home</span>
             </Link>
             
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <Play className="w-4 h-4 text-white" />
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Play className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-xl font-bold text-gray-900">PodPicker</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">PodPicker</span>
+              <AuthNav onSignInClick={() => router.push('/')} />
             </div>
           </div>
         </div>

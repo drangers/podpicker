@@ -1,9 +1,45 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Play, ArrowRight, Scissors, Heart, Clock, Youtube, Sparkles, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import AuthModal from '@/components/auth/AuthModal'
+import AuthNav from '@/components/auth/AuthNav'
+import { getUser, onAuthStateChange } from '@/lib/auth'
+import type { User } from '@supabase/supabase-js'
 
 export default function Home() {
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Check initial auth state
+    const checkUser = async () => {
+      const currentUser = await getUser()
+      setUser(currentUser)
+      setIsLoading(false)
+    }
+
+    checkUser()
+
+    // Listen for auth changes
+    const { data: { subscription } } = onAuthStateChange((user) => {
+      setUser(user)
+      setIsLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleSignInClick = () => {
+    setShowAuthModal(true)
+  }
+
+  const handleAuthModalClose = () => {
+    setShowAuthModal(false)
+  }
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header/Navigation */}
@@ -25,12 +61,26 @@ export default function Home() {
               <a href="#pricing" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">Pricing</a>
             </nav>
             
-            <Link 
-              href="/dashboard"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              Get Started
-            </Link>
+            <div className="flex items-center space-x-4">
+              {!isLoading && (
+                user ? (
+                  <Link 
+                    href="/dashboard"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                ) : (
+                  <button
+                    onClick={handleSignInClick}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    Get Started
+                  </button>
+                )
+              )}
+              <AuthNav onSignInClick={handleSignInClick} />
+            </div>
           </div>
         </div>
       </header>
@@ -307,7 +357,7 @@ export default function Home() {
         </div>
       </footer>
 
-
+      {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={handleAuthModalClose} />}
     </div>
   );
 }
