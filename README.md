@@ -4,6 +4,7 @@ Extract the gold from your favorite podcasts with AI-powered segmentation and cu
 
 ## Features
 
+- **Transcript Availability Check**: Automatically checks if transcript data exists for YouTube videos before processing
 - **Real YouTube Transcript Extraction**: Uses the `youtube-transcript` package to extract real transcripts from YouTube videos
 - **YouTube Data API Integration**: Fetches real video metadata including title, description, duration, and thumbnails
 - **OpenAI-Powered Topic Analysis**: Uses GPT-4 to analyze transcripts and identify key topics with timestamps
@@ -39,15 +40,17 @@ Extract the gold from your favorite podcasts with AI-powered segmentation and cu
 ## How to Use
 
 1. **Paste a YouTube URL**: Enter any YouTube podcast URL in the dashboard
-2. **Extract Transcript**: The app will automatically extract the transcript from the video
-3. **AI Analysis**: OpenAI will analyze the transcript and identify key topics
-4. **Select Topics**: Choose which topics you want to save to your collection
-5. **Save to Collection**: Build your personalized library of podcast segments
+2. **Check Transcript Availability**: The app automatically checks if transcript data is available for the video
+3. **Show Transcript**: Click "Show Transcript" to extract and display the transcript
+4. **AI Analysis**: OpenAI will analyze the transcript and identify key topics
+5. **Select Topics**: Choose which topics you want to save to your collection
+6. **Save to Collection**: Build your personalized library of podcast segments
 
 ## Technical Details
 
 ### API Routes
 
+- `/api/check-transcript-availability` - Checks if transcript data exists for a YouTube video
 - `/api/transcript` - Extracts real transcripts from YouTube videos and fetches video metadata
 - `/api/youtube-data` - Fetches detailed video information from YouTube Data API
 - `/api/analyze-transcript` - Uses OpenAI to analyze transcripts and identify topics

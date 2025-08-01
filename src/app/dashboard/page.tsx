@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import { Youtube, Play, ArrowLeft, Sparkles, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Youtube, Play, ArrowLeft, Sparkles, Clock, CheckCircle, AlertCircle, Eye } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -10,6 +10,8 @@ export default function Dashboard() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [showTopics, setShowTopics] = useState(false);
+  const [transcriptAvailable, setTranscriptAvailable] = useState(false);
+  const [checkingTranscript, setCheckingTranscript] = useState(false);
   const [selectedTopics, setSelectedTopics] = useState<number[]>([]);
   const [aiTopics, setAiTopics] = useState<Array<{
     id: number;
@@ -24,8 +26,55 @@ export default function Dashboard() {
     openai: boolean;
   }>({ youtube: false, openai: false });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Function to check if transcript data exists in page HTML
+  const checkTranscriptAvailability = async (url: string): Promise<boolean> => {
+    try {
+      // Extract video ID from URL
+      const videoId = extractVideoId(url);
+      if (!videoId) return false;
+
+      // Check if we can access the YouTube page and find transcript data
+      const response = await fetch(`/api/check-transcript-availability`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ videoId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.hasTranscript;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking transcript availability:', error);
+      return false;
+    }
+  };
+
+  const handleUrlChange = async (url: string) => {
+    setYoutubeUrl(url);
+    
+    if (url.trim()) {
+      setCheckingTranscript(true);
+      try {
+        const hasTranscript = await checkTranscriptAvailability(url);
+        setTranscriptAvailable(hasTranscript);
+      } catch (error) {
+        console.error('Error checking transcript availability:', error);
+        setTranscriptAvailable(false);
+      } finally {
+        setCheckingTranscript(false);
+      }
+    } else {
+      setTranscriptAvailable(false);
+      setCheckingTranscript(false);
+    }
+  };
+
+  const handleShowTranscript = async () => {
     if (!youtubeUrl.trim()) return;
 
     setIsProcessing(true);
@@ -224,8 +273,11 @@ export default function Dashboard() {
         {/* YouTube URL Input Form */}
         <div className="max-w-2xl mx-auto mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">
-            Extract Gold from Any Podcast
+            Check and Show Podcast Transcripts
           </h1>
+          <p className="text-gray-600 text-center mb-6">
+            Enter a YouTube URL to check if transcript data is available, then click "Show Transcript" to extract and analyze it.
+          </p>
           
           {/* API Status Indicator */}
           <div className="mb-4 p-3 bg-gray-50 rounded-lg">
@@ -254,7 +306,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleShowTranscript(); }} className="space-y-4">
             <div>
               <label htmlFor="youtube-url" className="block text-sm font-medium text-gray-700 mb-2">
                 YouTube Podcast URL
@@ -265,17 +317,37 @@ export default function Dashboard() {
                   id="youtube-url"
                   type="url"
                   value={youtubeUrl}
-                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  onChange={(e) => handleUrlChange(e.target.value)}
                   placeholder="https://www.youtube.com/watch?v=..."
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   required
                 />
               </div>
+              {youtubeUrl.trim() && (
+                <div className="mt-2 flex items-center space-x-2">
+                  {checkingTranscript ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-sm text-blue-600">Checking transcript availability...</span>
+                    </>
+                  ) : transcriptAvailable ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span className="text-sm text-green-600">Transcript available</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="w-4 h-4 text-red-600" />
+                      <span className="text-sm text-red-600">No transcript found for this video</span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             
             <button
               type="submit"
-              disabled={isProcessing || !youtubeUrl.trim()}
+              disabled={isProcessing || !youtubeUrl.trim() || !transcriptAvailable}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
             >
               {isProcessing ? (
@@ -285,8 +357,8 @@ export default function Dashboard() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-5 h-5" />
-                  <span>Analyze Podcast</span>
+                  <Eye className="w-5 h-5" />
+                  <span>Show Transcript</span>
                 </>
               )}
             </button>
