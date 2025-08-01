@@ -22,6 +22,7 @@ export interface TranscriptApiConfig {
   apiKey?: string;
   baseUrl?: string;
   timeout?: number;
+  useOAuth?: boolean;
 }
 
 export class TranscriptApiService {
@@ -30,6 +31,7 @@ export class TranscriptApiService {
   constructor(config: TranscriptApiConfig = {}) {
     this.config = {
       timeout: 30000, // 30 seconds default
+      useOAuth: false, // Default to API key authentication
       ...config
     };
   }
@@ -257,7 +259,7 @@ export class TranscriptApiService {
   /**
    * Main method to fetch transcript using the configured service
    */
-  async fetchTranscript(videoId: string, service: 'rapidapi' | 'assemblyai' | 'custom' = 'rapidapi'): Promise<TranscriptApiResponse> {
+  async fetchTranscript(videoId: string, service: 'rapidapi' | 'assemblyai' | 'custom' | 'oauth' = 'rapidapi'): Promise<TranscriptApiResponse> {
     switch (service) {
       case 'rapidapi':
         return this.fetchTranscriptRapidAPI(videoId);
@@ -265,15 +267,44 @@ export class TranscriptApiService {
         return this.fetchTranscriptAssemblyAI(videoId);
       case 'custom':
         return this.fetchTranscriptCustomAPI(videoId);
+      case 'oauth':
+        return this.fetchTranscriptOAuth(videoId);
       default:
         throw new Error(`Unknown transcript service: ${service}`);
     }
   }
 
   /**
+   * Extract transcript using OAuth-authenticated YouTube API
+   */
+  async fetchTranscriptOAuth(videoId: string): Promise<TranscriptApiResponse> {
+    try {
+      // Import the YouTube API service dynamically to avoid circular dependencies
+      const { getYouTubeApiService } = await import('./youtube-api-service');
+      const youtubeApi = getYouTubeApiService();
+      
+      const response = await youtubeApi.getTranscript(videoId);
+      
+      return {
+        transcript: response.transcript,
+        metadata: {
+          title: response.metadata.title,
+          description: response.metadata.description,
+          channelTitle: response.metadata.channelTitle,
+          duration: response.metadata.duration,
+          thumbnail: response.metadata.thumbnail,
+        },
+        videoId: response.videoId,
+      };
+    } catch (error) {
+      throw new Error(`OAuth transcript extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
    * Check if transcript is available using the configured service
    */
-  async checkTranscriptAvailability(videoId: string, service: 'rapidapi' | 'assemblyai' | 'custom' = 'rapidapi'): Promise<boolean> {
+  async checkTranscriptAvailability(videoId: string, service: 'rapidapi' | 'assemblyai' | 'custom' | 'oauth' = 'rapidapi'): Promise<boolean> {
     try {
       await this.fetchTranscript(videoId, service);
       return true;

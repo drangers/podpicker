@@ -25,10 +25,12 @@ function extractVideoId(url: string): string | null {
 }
 
 export async function POST(request: NextRequest) {
+  let finalVideoId: string | null = null;
+  
   try {
     const { videoId, youtubeUrl } = await request.json();
 
-    let finalVideoId = videoId;
+    finalVideoId = videoId;
     
     // If videoId is not provided but youtubeUrl is, extract videoId from URL
     if (!finalVideoId && youtubeUrl) {
@@ -77,14 +79,16 @@ export async function POST(request: NextRequest) {
           hasTranscript: true,
           message: 'Transcript is available',
           videoId: finalVideoId,
-          transcriptCount: 0 // We don't know the count until we actually scrape
+          transcriptCount: 0, // We don't know the count until we actually scrape
+          method: 'oauth'
         });
       } else {
         return NextResponse.json({
           hasTranscript: false,
           message: 'No transcript available for this video',
           videoId: finalVideoId,
-          details: 'No captions found for this video'
+          details: 'No captions found for this video',
+          method: 'oauth'
         });
       }
       
@@ -97,19 +101,21 @@ export async function POST(request: NextRequest) {
         hasTranscript: false,
         message: 'No transcript available for this video',
         videoId: finalVideoId,
-        details: errorMessage
+        details: errorMessage,
+        method: 'oauth'
       });
     }
 
   } catch (error: unknown) {
-    console.error('Transcript availability check error:', error);
+    console.error('OAuth transcript availability check error:', error);
     
     return NextResponse.json(
       { 
         error: 'Failed to check transcript availability',
         hasTranscript: false,
         message: 'Failed to check transcript availability',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
+        method: 'oauth'
       },
       { status: 500 }
     );

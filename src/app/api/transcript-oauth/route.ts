@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getYouTubeApiService } from '@/lib/youtube-api-service';
+import { getTranscriptApiService } from '@/lib/transcript-api-service';
 import { getUser } from '@/lib/auth';
 
 // Helper function to validate video ID
@@ -61,25 +61,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get transcript using OAuth-authenticated YouTube API
-    const youtubeApi = getYouTubeApiService();
-    const transcriptResponse = await youtubeApi.getTranscript(finalVideoId);
+    // Get transcript using OAuth-authenticated service
+    const transcriptApi = getTranscriptApiService();
+    const transcriptResponse = await transcriptApi.fetchTranscript(finalVideoId, 'oauth');
 
     return NextResponse.json({
       transcript: transcriptResponse.transcript,
       title: transcriptResponse.metadata.title,
       videoData: transcriptResponse.metadata,
       videoId: finalVideoId,
-      transcriptCount: transcriptResponse.transcript.length
+      transcriptCount: transcriptResponse.transcript.length,
+      method: 'oauth'
     });
 
   } catch (error: unknown) {
-    console.error('Transcript extraction error:', error);
+    console.error('OAuth transcript extraction error:', error);
     
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
     // Handle specific authentication errors
-    if (errorMessage.includes('User must be authenticated')) {
+    if (errorMessage.includes('User must be authenticated') || errorMessage.includes('Authentication required')) {
       return NextResponse.json(
         { error: 'Authentication required to access YouTube API' },
         { status: 401 }
@@ -100,10 +101,10 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(
       { 
-        error: 'Failed to extract transcript. Please check if the video has captions available.',
+        error: 'Failed to extract transcript using OAuth. Please check if the video has captions available.',
         details: errorMessage
       },
       { status: 500 }
     );
   }
-}
+} 
