@@ -39,7 +39,7 @@ export default function Dashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ videoId }),
+        body: JSON.stringify({ videoId, youtubeUrl: url }),
       });
 
       if (response.ok) {
@@ -92,11 +92,12 @@ export default function Dashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ videoId }),
+        body: JSON.stringify({ videoId, youtubeUrl }),
       });
 
       if (!transcriptResponse.ok) {
-        throw new Error('Failed to extract transcript');
+        const errorData = await transcriptResponse.json();
+        throw new Error(errorData.error || 'Failed to extract transcript');
       }
 
       const transcriptData = await transcriptResponse.json();
@@ -135,7 +136,8 @@ export default function Dashboard() {
       
     } catch (error) {
       console.error('Error processing podcast:', error);
-      alert('Failed to process podcast. Please check the URL and try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process podcast. Please check the URL and try again.';
+      alert(errorMessage);
     } finally {
       setIsProcessing(false);
     }

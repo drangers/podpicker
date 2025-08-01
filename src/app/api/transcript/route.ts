@@ -1,23 +1,114 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { YoutubeTranscript } from 'youtube-transcript';
+import youtubeTranscript from 'youtube-transcript';
 import { google } from 'googleapis';
 
 const youtube = google.youtube('v3');
 
+// Helper function to validate video ID
+function isValidVideoId(videoId: string): boolean {
+  return /^[a-zA-Z0-9_-]{11}$/.test(videoId);
+}
+
+// Helper function to extract video ID from various YouTube URL formats
+function extractVideoId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    /^([a-zA-Z0-9_-]{11})$/
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) {
+      return match[1];
+    }
+  }
+  
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { videoId } = await request.json();
+    const { videoId, youtubeUrl } = await request.json();
 
-    if (!videoId) {
+    let finalVideoId = videoId;
+    
+    // If videoId is not provided but youtubeUrl is, extract videoId from URL
+    if (!finalVideoId && youtubeUrl) {
+      finalVideoId = extractVideoId(youtubeUrl);
+    }
+
+    if (!finalVideoId) {
       return NextResponse.json(
-        { error: 'Video ID is required' },
+        { error: 'Video ID or YouTube URL is required' },
         { status: 400 }
       );
     }
 
-    // Get real transcript from YouTube
-    const transcriptItems = await YoutubeTranscript.fetchTranscript(videoId);
+    // Validate video ID format
+    if (!isValidVideoId(finalVideoId)) {
+      return NextResponse.json(
+        { error: 'Invalid video ID format' },
+        { status: 400 }
+      );
+    }
+
+    // Get transcript from YouTube with enhanced error handling
+    let transcriptItems: Array<{ text: string; offset: number; duration: number }> = [];
+    let transcriptError: Error | null = null;
     
+    try {
+      transcriptItems = await youtubeTranscript.YoutubeTranscript.fetchTranscript(finalVideoId);
+      
+      // Validate transcript items
+      if (!Array.isArray(transcriptItems)) {
+        throw new Error('Invalid transcript format received');
+      }
+      
+      // Check if transcript has meaningful content
+      const hasContent = transcriptItems.some((item) => 
+        item && item.text && item.text.trim().length > 0
+      );
+      
+      if (!hasContent) {
+        throw new Error('No transcript content available');
+      }
+      
+    } catch (error: any) {
+      transcriptError = error;
+      console.error('Transcript extraction failed:', error.message);
+      
+      // Try with language specification as fallback
+      try {
+        transcriptItems = await youtubeTranscript.YoutubeTranscript.fetchTranscript(finalVideoId, { lang: 'en' });
+        
+        if (!Array.isArray(transcriptItems) || transcriptItems.length === 0) {
+          throw new Error('No transcript available with language fallback');
+        }
+        
+        transcriptError = null; // Clear error if fallback succeeded
+      } catch (fallbackError: any) {
+        console.error('Language fallback also failed:', fallbackError.message);
+      }
+    }
+
+    // If transcript extraction failed, return appropriate error
+    if (transcriptError) {
+      const errorMessage = transcriptError.message.includes('disabled') 
+        ? 'Transcript is disabled for this video'
+        : transcriptError.message.includes('Impossible to retrieve')
+        ? 'Invalid video ID or video not found'
+        : 'No transcript available for this video';
+        
+      return NextResponse.json(
+        { 
+          error: errorMessage,
+          details: transcriptError.message,
+          videoId: finalVideoId
+        },
+        { status: 404 }
+      );
+    }
+
     // Format transcript data to match expected structure
     const formattedTranscript = transcriptItems.map((item: { text: string; offset: number; duration: number }) => ({
       text: item.text,
@@ -33,7 +124,7 @@ export async function POST(request: NextRequest) {
         const videoResponse = await youtube.videos.list({
           key: apiKey,
           part: ['snippet', 'contentDetails'],
-          id: [videoId],
+          id: [finalVideoId],
         });
 
         if (videoResponse.data.items && videoResponse.data.items.length > 0) {
@@ -55,7 +146,7 @@ export async function POST(request: NextRequest) {
           }
 
           videoData = {
-            title: snippet?.title || `YouTube Video - ${videoId}`,
+            title: snippet?.title || `YouTube Video - ${finalVideoId}`,
             description: snippet?.description || '',
             channelTitle: snippet?.channelTitle || '',
             duration: durationInSeconds,
@@ -70,7 +161,7 @@ export async function POST(request: NextRequest) {
       console.warn('Failed to fetch video metadata from YouTube API:', apiError);
       // Fallback to basic title if API fails
       videoData = {
-        title: `YouTube Video - ${videoId}`,
+        title: `YouTube Video - ${finalVideoId}`,
         description: '',
         channelTitle: '',
         duration: 0,
@@ -80,15 +171,20 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       transcript: formattedTranscript,
-      title: videoData?.title || `YouTube Video - ${videoId}`,
-      videoData: videoData
+      title: videoData?.title || `YouTube Video - ${finalVideoId}`,
+      videoData: videoData,
+      videoId: finalVideoId,
+      transcriptCount: formattedTranscript.length
     });
 
   } catch (error: unknown) {
     console.error('Transcript extraction error:', error);
     
     return NextResponse.json(
-      { error: 'Failed to extract transcript. Please check if the video has captions available.' },
+      { 
+        error: 'Failed to extract transcript. Please check if the video has captions available.',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
