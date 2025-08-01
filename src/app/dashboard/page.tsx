@@ -278,7 +278,7 @@ export default function Dashboard() {
             Check and Show Podcast Transcripts
           </h1>
           <p className="text-gray-600 text-center mb-6">
-            Enter a YouTube URL to check if transcript data is available, then click "Show Transcript" to extract and analyze it.
+            Enter a YouTube URL to check if transcript data is available, then click &quot;Show Transcript&quot; to extract and analyze it.
           </p>
           
           {/* API Status Indicator */}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import youtubeTranscript from 'youtube-transcript';
+import { getYouTubeTranscriptPlus } from '@/lib/youtube-transcript-plus';
 
 // Helper function to validate video ID
 function isValidVideoId(videoId: string): boolean {
@@ -53,38 +53,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Try to fetch transcript to check if it's available
+    // Check transcript availability using youtube-transcript-plus
     try {
-      const transcriptItems = await youtubeTranscript.YoutubeTranscript.fetchTranscript(finalVideoId);
-      
-      // If we can fetch transcript items and they have content, transcript is available
-      const hasTranscript = transcriptItems && 
-        Array.isArray(transcriptItems) && 
-        transcriptItems.length > 0 && 
-        transcriptItems.some((item: { text: string }) => item.text && item.text.trim().length > 0);
+      const transcriptPlus = getYouTubeTranscriptPlus();
+      const hasTranscript = await transcriptPlus.checkTranscriptAvailability(finalVideoId);
       
       return NextResponse.json({
         hasTranscript,
         message: hasTranscript ? 'Transcript is available' : 'No transcript found',
         videoId: finalVideoId,
-        transcriptCount: hasTranscript ? transcriptItems.length : 0
+        transcriptCount: hasTranscript ? 0 : 0 // We don't know the count until we actually scrape
       });
       
-    } catch (transcriptError: any) {
-      // If transcript fetch fails, it means no transcript is available
-      console.log('Transcript not available for video:', finalVideoId, transcriptError.message);
+    } catch (transcriptError: unknown) {
+      // If transcript check fails, it means no transcript is available
+      const errorMessage = transcriptError instanceof Error ? transcriptError.message : 'Unknown error';
+      console.log('Transcript not available for video:', finalVideoId, errorMessage);
       
-      const errorMessage = transcriptError.message.includes('disabled') 
-        ? 'Transcript is disabled for this video'
-        : transcriptError.message.includes('Impossible to retrieve')
-        ? 'Invalid video ID or video not found'
+      const userMessage = errorMessage.includes('Transcript button not found') 
+        ? 'Transcript is not available for this video'
+        : errorMessage.includes('Transcript not found')
+        ? 'No transcript content found'
         : 'No transcript available for this video';
         
       return NextResponse.json({
         hasTranscript: false,
-        message: errorMessage,
+        message: userMessage,
         videoId: finalVideoId,
-        details: transcriptError.message
+        details: errorMessage
       });
     }
 

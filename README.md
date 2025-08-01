@@ -5,7 +5,7 @@ Extract the gold from your favorite podcasts with AI-powered segmentation and cu
 ## Features
 
 - **Transcript Availability Check**: Automatically checks if transcript data exists for YouTube videos before processing
-- **Real YouTube Transcript Extraction**: Uses the `youtube-transcript` package to extract real transcripts from YouTube videos
+- **Real YouTube Transcript Extraction**: Uses Puppeteer to scrape transcripts directly from YouTube's "Show transcript" section
 - **YouTube Data API Integration**: Fetches real video metadata including title, description, duration, and thumbnails
 - **OpenAI-Powered Topic Analysis**: Uses GPT-4 to analyze transcripts and identify key topics with timestamps
 - **Smart Segmentation**: AI breaks down long podcasts into digestible topics with precise timestamps
@@ -60,7 +60,7 @@ Extract the gold from your favorite podcasts with AI-powered segmentation and cu
 
 - **Next.js 15** - React framework
 - **OpenAI SDK** - For AI-powered transcript analysis
-- **youtube-transcript** - For extracting YouTube transcripts
+- **Puppeteer** - For scraping YouTube transcripts directly from the browser
 - **googleapis** - For YouTube Data API integration
 - **Tailwind CSS** - For styling
 - **Lucide React** - For icons
@@ -81,7 +81,8 @@ The application follows a modern Next.js architecture:
 
 ## Troubleshooting
 
-- **Transcript Extraction Fails**: Ensure the YouTube video has captions/transcripts available
+- **Transcript Extraction Fails**: Ensure the YouTube video has captions/transcripts available. The scraper looks for the "Show transcript" button on YouTube.
+- **Puppeteer Issues**: If you encounter Puppeteer-related errors, ensure you have the necessary system dependencies for browser automation.
 - **Video Metadata Fails**: Check that your YouTube Data API key is correctly set in `.env.local`
 - **AI Analysis Fails**: Check that your OpenAI API key is correctly set in `.env.local`
 - **Build Errors**: Run `npm run build` to check for TypeScript errors

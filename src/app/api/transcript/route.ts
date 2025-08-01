@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import youtubeTranscript from 'youtube-transcript';
 import { google } from 'googleapis';
+import { getYouTubeTranscriptPlus } from '@/lib/youtube-transcript-plus';
 
 const youtube = google.youtube('v3');
 
@@ -52,12 +52,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get transcript from YouTube with enhanced error handling
-    let transcriptItems: Array<{ text: string; offset: number; duration: number }> = [];
+    // Get transcript from YouTube using youtube-transcript-plus
+    let transcriptItems: Array<{ text: string; start: number; duration: number }> = [];
     let transcriptError: Error | null = null;
     
     try {
-      transcriptItems = await youtubeTranscript.YoutubeTranscript.fetchTranscript(finalVideoId);
+      const transcriptPlus = getYouTubeTranscriptPlus();
+      const result = await transcriptPlus.fetchTranscript(finalVideoId);
+      
+      transcriptItems = result.transcript;
       
       // Validate transcript items
       if (!Array.isArray(transcriptItems)) {
@@ -73,30 +76,17 @@ export async function POST(request: NextRequest) {
         throw new Error('No transcript content available');
       }
       
-    } catch (error: any) {
-      transcriptError = error;
-      console.error('Transcript extraction failed:', error.message);
-      
-      // Try with language specification as fallback
-      try {
-        transcriptItems = await youtubeTranscript.YoutubeTranscript.fetchTranscript(finalVideoId, { lang: 'en' });
-        
-        if (!Array.isArray(transcriptItems) || transcriptItems.length === 0) {
-          throw new Error('No transcript available with language fallback');
-        }
-        
-        transcriptError = null; // Clear error if fallback succeeded
-      } catch (fallbackError: any) {
-        console.error('Language fallback also failed:', fallbackError.message);
-      }
+    } catch (error: unknown) {
+      transcriptError = error instanceof Error ? error : new Error('Unknown error');
+      console.error('Transcript extraction failed:', transcriptError.message);
     }
 
     // If transcript extraction failed, return appropriate error
     if (transcriptError) {
-      const errorMessage = transcriptError.message.includes('disabled') 
-        ? 'Transcript is disabled for this video'
-        : transcriptError.message.includes('Impossible to retrieve')
-        ? 'Invalid video ID or video not found'
+      const errorMessage = transcriptError.message.includes('Transcript button not found') 
+        ? 'Transcript is not available for this video'
+        : transcriptError.message.includes('Transcript not found')
+        ? 'No transcript content found'
         : 'No transcript available for this video';
         
       return NextResponse.json(
@@ -110,10 +100,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Format transcript data to match expected structure
-    const formattedTranscript = transcriptItems.map((item: { text: string; offset: number; duration: number }) => ({
+    const formattedTranscript = transcriptItems.map((item: { text: string; start: number; duration: number }) => ({
       text: item.text,
-      start: Math.floor(item.offset / 1000), // Convert milliseconds to seconds
-      duration: Math.floor(item.duration / 1000) // Convert milliseconds to seconds
+      start: item.start,
+      duration: item.duration
     }));
 
     // Get video metadata from YouTube Data API
