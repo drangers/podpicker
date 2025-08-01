@@ -297,7 +297,7 @@ export async function POST(request: NextRequest) {
       totalSegments: transcript.length
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('AI analysis error:', error);
     
     return NextResponse.json(

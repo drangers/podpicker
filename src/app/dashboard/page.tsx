@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Youtube, Play, ArrowLeft, Sparkles, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Dashboard() {
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -319,9 +320,11 @@ export default function Dashboard() {
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-start space-x-4">
                     {transcriptData.videoData.thumbnail && (
-                      <img 
+                      <Image 
                         src={transcriptData.videoData.thumbnail} 
                         alt="Video thumbnail"
+                        width={96}
+                        height={64}
                         className="w-24 h-16 object-cover rounded-lg"
                       />
                     )}
