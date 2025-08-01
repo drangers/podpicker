@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getYouTubeTranscriptPlus } from '@/lib/youtube-transcript-plus';
+import { YoutubeTranscript } from 'youtube-transcript';
 
 // Helper function to validate video ID
 function isValidVideoId(videoId: string): boolean {
@@ -53,16 +53,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check transcript availability using youtube-transcript-plus
+    // Check transcript availability using youtube-transcript
     try {
-      const transcriptPlus = getYouTubeTranscriptPlus();
-      const hasTranscript = await transcriptPlus.checkTranscriptAvailability(finalVideoId);
+      await YoutubeTranscript.fetchTranscript(finalVideoId);
       
       return NextResponse.json({
-        hasTranscript,
-        message: hasTranscript ? 'Transcript is available' : 'No transcript found',
+        hasTranscript: true,
+        message: 'Transcript is available',
         videoId: finalVideoId,
-        transcriptCount: hasTranscript ? 0 : 0 // We don't know the count until we actually scrape
+        transcriptCount: 0 // We don't know the count until we actually scrape
       });
       
     } catch (transcriptError: unknown) {

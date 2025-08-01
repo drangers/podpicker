@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import { getYouTubeTranscriptPlus } from '@/lib/youtube-transcript-plus';
+import { YoutubeTranscript } from 'youtube-transcript';
 
 const youtube = google.youtube('v3');
 
@@ -52,15 +52,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get transcript from YouTube using youtube-transcript-plus
+    // Get transcript from YouTube using youtube-transcript
     let transcriptItems: Array<{ text: string; start: number; duration: number }> = [];
     let transcriptError: Error | null = null;
     
     try {
-      const transcriptPlus = getYouTubeTranscriptPlus();
-      const result = await transcriptPlus.fetchTranscript(finalVideoId);
+      const transcriptData = await YoutubeTranscript.fetchTranscript(finalVideoId);
       
-      transcriptItems = result.transcript;
+      // Transform the transcript data to match our interface
+      transcriptItems = transcriptData.map((item: { text: string; offset: number; duration: number }) => ({
+        text: item.text,
+        start: item.offset / 1000, // Convert milliseconds to seconds
+        duration: item.duration / 1000 // Convert milliseconds to seconds
+      }));
       
       // Validate transcript items
       if (!Array.isArray(transcriptItems)) {
