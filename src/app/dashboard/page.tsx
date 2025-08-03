@@ -46,7 +46,10 @@ export default function Dashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ videoId, youtubeUrl: url }),
+        body: JSON.stringify({ 
+          videoId, 
+          youtubeUrl: url
+        }),
       });
 
       if (response.ok) {

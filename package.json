@@ -6,15 +6,27 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup-oauth": "node scripts/setup-oauth.js",
+    "complete-oauth": "node scripts/complete-oauth-setup.js",
+    "configure-supabase": "node scripts/configure-supabase-oauth.js",
+    "oauth-checklist": "node scripts/oauth-checklist-complete.js",
+    "test-scraper": "tsx scripts/test-scraper.ts",
+    "test-new-scraper": "tsx scripts/test-new-scraper.ts",
+    "test-reverse-engineered": "tsx scripts/test-reverse-engineered.ts",
+    "example": "tsx examples/transcript-extraction-example.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.53.0",
+    "axios": "^1.11.0",
+    "cheerio": "^1.1.2",
     "googleapis": "^154.1.0",
     "lucide-react": "^0.535.0",
     "next": "15.4.5",
+    "node-fetch": "^3.3.2",
     "openai": "^5.11.0",
+    "puppeteer": "^24.15.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "youtube-transcript": "^1.2.1"
@@ -28,6 +40,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.4.5",
     "tailwindcss": "^4",
+    "tsx": "^4.20.3",
     "typescript": "^5"
   }
 }

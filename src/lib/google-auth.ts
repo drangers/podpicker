@@ -19,6 +19,10 @@ export class GoogleAuthService {
    */
   async getUserTokens() {
     try {
+      if (!supabase) {
+        throw new Error('Supabase not configured');
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.provider_token) {
@@ -80,6 +84,10 @@ export class GoogleAuthService {
    */
   async refreshTokens() {
     try {
+      if (!supabase) {
+        throw new Error('Supabase not configured');
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.provider_refresh_token) {
@@ -121,7 +129,13 @@ export function getGoogleAuthService(): GoogleAuthService {
   if (!googleAuthInstance) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`;
+    
+    // Determine the correct redirect URI based on environment
+    const isProduction = process.env.NODE_ENV === 'production'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const redirectUri = isProduction 
+      ? `${siteUrl}/auth/callback`
+      : 'http://localhost:3000/auth/callback'
 
     if (!clientId || !clientSecret) {
       throw new Error('Google OAuth credentials not configured');

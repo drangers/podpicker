@@ -57,6 +57,7 @@ export default function Home() {
               <a href="#" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">Home</a>
               <Link href="/collection" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">My Collection</Link>
               <Link href="/test-external-transcript" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">Test Transcript API</Link>
+              <Link href="/youtube-transcript-test" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">YouTube Transcript Test</Link>
               <a href="#features" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">Features</a>
               <a href="#pricing" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">Pricing</a>
             </nav>

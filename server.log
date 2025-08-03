@@ -1,0 +1,20 @@
+
+> podcast-curator@0.1.0 dev
+> next dev --turbopack
+
+   ▲ Next.js 15.4.5 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.32.197:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1342ms
+ ○ Compiling /api/youtube-transcript ...
+ ✓ Compiled /api/youtube-transcript in 2s
+Starting YouTube transcript scraping for: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+🚀 Starting YouTube transcript scraping process...
+📹 Video URL: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+🔧 Using unified implementation...
+🔧 Using NEW youtube-transcript implementation
+✅ Transcript scraping completed successfully
+ POST /api/youtube-transcript 200 in 4991ms

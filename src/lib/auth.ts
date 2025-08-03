@@ -15,10 +15,21 @@ export interface AuthResponse {
  */
 export const signInWithGoogle = async (): Promise<AuthResponse> => {
   try {
+    if (!supabase) {
+      return { error: { message: 'Supabase not configured' } }
+    }
+
+    // Determine the correct redirect URL based on environment
+    const isProduction = process.env.NODE_ENV === 'production'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+    const redirectUrl = isProduction 
+      ? `${siteUrl}/auth/callback`
+      : `${window.location.origin}/auth/callback`
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: redirectUrl,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -45,6 +56,10 @@ export const signInWithGoogle = async (): Promise<AuthResponse> => {
  */
 export const signOut = async (): Promise<AuthResponse> => {
   try {
+    if (!supabase) {
+      return { error: { message: 'Supabase not configured' } }
+    }
+
     const { error } = await supabase.auth.signOut()
 
     if (error) {
@@ -66,6 +81,10 @@ export const signOut = async (): Promise<AuthResponse> => {
  */
 export const getUser = async (): Promise<User | null> => {
   try {
+    if (!supabase) {
+      return null
+    }
+
     const { data: { user } } = await supabase.auth.getUser()
     return user
   } catch (error) {
@@ -78,6 +97,10 @@ export const getUser = async (): Promise<User | null> => {
  * Listen to auth state changes
  */
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
+  if (!supabase) {
+    return { data: { subscription: { unsubscribe: () => {} } } }
+  }
+  
   return supabase.auth.onAuthStateChange((_event, session) => {
     callback(session?.user ?? null)
   })
